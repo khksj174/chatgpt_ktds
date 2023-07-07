@@ -1,5 +1,6 @@
 import sys
 import openai
+import pickle
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout, QInputDialog, QProgressDialog, QPlainTextEdit, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QMovie
@@ -8,7 +9,11 @@ class ChatGptApp(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.buttonstate_file="button_state.pkl"
+        self.buttonnames_file="button_names.pkl"
+
         self.initUI()
+
 
     def initUI(self):
         self.file_label = QLabel("")
@@ -31,7 +36,7 @@ class ChatGptApp(QWidget):
         verify_button.clicked.connect(self.Script)
 
         self.addButton = QPushButton("+", self)
-        self.addButton.clicked.connect(self.addButtonClicked)
+        self.addButton.clicked.connect(self.addButtonClicked)   
 
         vbox_left = QVBoxLayout()
         vbox_left.addWidget(load_button)
@@ -56,6 +61,9 @@ class ChatGptApp(QWidget):
 
         self.buttonCounter = 0
 
+        # 추가된 버튼들을 저장할 리스트
+        self.buttons = []
+
     def clean_TextChanged(self):
         if self.file_input.toPlainText() == "파일 내용을 입력하세요.":
             self.file_input.clear()
@@ -68,6 +76,7 @@ class ChatGptApp(QWidget):
             button.setIcon(QIcon("img/icon.png"))
             button.clicked.connect(self.showInputDialog)
             self.vbox_right.addWidget(button) 
+            self.buttons.append(button)
 
     def showInputDialog(self):
         button = self.sender()
@@ -81,8 +90,8 @@ class ChatGptApp(QWidget):
         dialog.setIcon(QMessageBox.Question)
         dialog.addButton("확인", QMessageBox.AcceptRole)
         dialog.addButton("취소", QMessageBox.RejectRole)
+        BtnDelete=dialog.addButton("삭제", QMessageBox.ActionRole)
         dialog.layout().addWidget(text_input)
-    
 
         if dialog.exec_() == QMessageBox.Accepted:
             print(text_input)
@@ -96,6 +105,11 @@ class ChatGptApp(QWidget):
             response = self.response_gpt(messages)
 
             self.file_label.setText(response)
+        
+        # 삭제 버튼 누르면 삭제
+        if dialog.clickedButton()==BtnDelete:
+            self.buttons.remove(button)
+            button.deleteLater()
 
         #QMessageBox.information(self, "입력 결과", f"입력된 텍스트: {text}\n버튼: {button.text()}")
 
@@ -148,7 +162,42 @@ class ChatGptApp(QWidget):
     
         return response['choices'][0]['message']['content']
 
+    def saveButtonState(self):
+        button_state = self.addButton.isChecked()
+        with open(self.buttonstate_file, "wb") as f:
+            pickle.dump(button_state, f)
+
+        # 추가된 버튼들의 이름을 저장
+        button_names = [button.text() for button in self.buttons]
+        with open(self.buttonnames_file, "wb") as f:
+            pickle.dump(button_names, f)
+
+    def loadButtonState(self):
+        try:
+            with open(self.buttonstate_file, "rb") as f:
+                button_state = pickle.load(f)
+                self.addButton.setChecked(button_state)
+        except FileNotFoundError:
+            pass
+
+        try:
+            with open(self.buttonnames_file, "rb") as f:
+                button_names = pickle.load(f)
+                for name in button_names:
+                    button = QPushButton(name, self)
+                    self.vbox_right.addWidget(button)
+                    self.buttons.append(button)
+                    button.clicked.connect(self.showInputDialog)
+        except FileNotFoundError:
+            pass
+    
+    def closeEvent(self, event):
+        self.saveButtonState()
+        event.accept()
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = ChatGptApp()
+    window.loadButtonState()
+    window.show()
     sys.exit(app.exec_())
