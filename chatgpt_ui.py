@@ -93,9 +93,9 @@ class ChatGptApp(QWidget):
         dialog.setWindowTitle("사전 학습 데이터 입력")
 
         if text:
-            dialog.setText(text)
+            text_input.setPlainText(text)
         else:
-            dialog.setText("Chat-gpt에게 학습 시킬 내용을 입력하세요:")
+            text_input.setPlainText("Chat-gpt에게 학습 시킬 내용을 입력하세요:")
 
         dialog.setIcon(QMessageBox.Question)
         dialog.addButton("확인", QMessageBox.AcceptRole)
@@ -174,17 +174,17 @@ class ChatGptApp(QWidget):
         # 추가된 버튼들의 이름을 저장
 
         button_names = [button.text() for button in self.buttons]
-        texts = [text for text in self.texts]
+        texts = []
+        for text in self.texts:
+            texts.extend(text)
 
         btn_sets = defaultdict()
 
         btn_sets = {'btn_name' : [], 's_text' : []}
 
-        for i in range(0,len(button_names)):
+        for i in range(len(button_names)//self.buttonCounter):
             btn_sets['btn_name'].extend(button_names)
             btn_sets['s_text'].extend(texts)
-        
-        print(btn_sets)
 
         with open(self.buttonnames_file, "wb") as f:
             pickle.dump(btn_sets, f)
@@ -208,11 +208,17 @@ class ChatGptApp(QWidget):
             with open(self.buttonnames_file, "rb") as f:
                 button_names = pickle.load(f)
 
-                for i in range(0,2):
-                    button = QPushButton(button_names['btn_name'][i], self)
-                    self.vbox_right.addWidget(button)
-                    self.buttons.append(button)
-                    button.clicked.connect(self.showInputDialog(*button_names['s_text'][i]))
+                for key, value in button_names.items():
+                    if key=='btn_name':
+                        for i in value:
+                            button = QPushButton(i, self)
+                            self.vbox_right.addWidget(button)
+                            self.buttons.append(button)
+                        
+                    else:
+                        for i in value:
+                            button.clicked.connect(lambda:self.showInputDialog(i))
+                
         except FileNotFoundError:
             pass
     
