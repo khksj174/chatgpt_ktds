@@ -181,8 +181,10 @@ class ChatGptApp(QWidget):
         btn_sets = {'btn_name' : [], 's_text' : []}
 
         for i in range(0,len(button_names)):
-            btn_sets['btn_name'].append(button_names)
-            btn_sets['s_text'].append(texts)
+            btn_sets['btn_name'].extend(button_names)
+            btn_sets['s_text'].extend(texts)
+        
+        print(btn_sets)
 
         with open(self.buttonnames_file, "wb") as f:
             pickle.dump(btn_sets, f)
@@ -210,7 +212,7 @@ class ChatGptApp(QWidget):
                     button = QPushButton(button_names['btn_name'][i], self)
                     self.vbox_right.addWidget(button)
                     self.buttons.append(button)
-                    button.clicked.connect(self.showInputDialog(button_names['s_text'][i]))
+                    button.clicked.connect(self.showInputDialog(*button_names['s_text'][i]))
         except FileNotFoundError:
             pass
     
