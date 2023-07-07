@@ -4,6 +4,7 @@ import pickle
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QFileDialog, QVBoxLayout, QHBoxLayout, QInputDialog, QProgressDialog, QPlainTextEdit, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QMovie
+from collections import defaultdict
 
 class ChatGptApp(QWidget):
     def __init__(self):
@@ -11,6 +12,7 @@ class ChatGptApp(QWidget):
 
         self.buttonstate_file="button_state.pkl"
         self.buttonnames_file="button_names.pkl"
+        self.studytext_file="studytext.pkl"
 
         self.initUI()
 
@@ -64,6 +66,9 @@ class ChatGptApp(QWidget):
         # 추가된 버튼들을 저장할 리스트
         self.buttons = []
 
+        # 학습 내용 저장할 리스트
+        self.texts = []
+
     def clean_TextChanged(self):
         if self.file_input.toPlainText() == "파일 내용을 입력하세요.":
             self.file_input.clear()
@@ -78,7 +83,7 @@ class ChatGptApp(QWidget):
             self.vbox_right.addWidget(button) 
             self.buttons.append(button)
 
-    def showInputDialog(self):
+    def showInputDialog(self,text):
         button = self.sender()
         text_input = QPlainTextEdit(self)
         text_input.setFixedSize(400, 500)
@@ -86,26 +91,25 @@ class ChatGptApp(QWidget):
 
         dialog = QMessageBox()
         dialog.setWindowTitle("사전 학습 데이터 입력")
-        dialog.setText("Chat-gpt에게 학습 시킬 내용을 입력하세요:")
+
+        if text:
+            dialog.setText(text)
+        else:
+            dialog.setText("Chat-gpt에게 학습 시킬 내용을 입력하세요:")
+
         dialog.setIcon(QMessageBox.Question)
         dialog.addButton("확인", QMessageBox.AcceptRole)
         dialog.addButton("취소", QMessageBox.RejectRole)
         BtnDelete=dialog.addButton("삭제", QMessageBox.ActionRole)
         dialog.layout().addWidget(text_input)
 
+        
         if dialog.exec_() == QMessageBox.Accepted:
             print(text_input)
             lines = text_input.toPlainText().split('\n')
 
-            messages = []
-            for line in lines:
-                message = {"role": "user", "content": line}
-                messages.append(message)
-
-            response = self.response_gpt(messages)
-
-            self.file_label.setText(response)
-        
+            self.texts.append(lines)
+          
         # 삭제 버튼 누르면 삭제
         if dialog.clickedButton()==BtnDelete:
             self.buttons.remove(button)
@@ -154,7 +158,7 @@ class ChatGptApp(QWidget):
         self.file_label.setText(response)
 
     def response_gpt(self,msg):
-        openai.api_key = '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'
+        openai.api_key = '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'
         response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=msg
@@ -168,9 +172,27 @@ class ChatGptApp(QWidget):
             pickle.dump(button_state, f)
 
         # 추가된 버튼들의 이름을 저장
+
         button_names = [button.text() for button in self.buttons]
+        texts = [text for text in self.texts]
+
+        btn_sets = defaultdict()
+
+        btn_sets = {'btn_name' : [], 's_text' : []}
+
+        for i in range(0,len(button_names)):
+            btn_sets['btn_name'].append(button_names)
+            btn_sets['s_text'].append(texts)
+
         with open(self.buttonnames_file, "wb") as f:
-            pickle.dump(button_names, f)
+            pickle.dump(btn_sets, f)
+
+        # 학습 아이템 내용 저장
+        '''
+        studytext = [text for text in self.texts]
+        with open(self.studytext_file, "wb") as f:
+            pickle.dump(studytext, f)
+        '''
 
     def loadButtonState(self):
         try:
@@ -183,11 +205,12 @@ class ChatGptApp(QWidget):
         try:
             with open(self.buttonnames_file, "rb") as f:
                 button_names = pickle.load(f)
-                for name in button_names:
-                    button = QPushButton(name, self)
+
+                for i in range(0,2):
+                    button = QPushButton(button_names['btn_name'][i], self)
                     self.vbox_right.addWidget(button)
                     self.buttons.append(button)
-                    button.clicked.connect(self.showInputDialog)
+                    button.clicked.connect(self.showInputDialog(button_names['s_text'][i]))
         except FileNotFoundError:
             pass
     
