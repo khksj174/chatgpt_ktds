@@ -11,8 +11,7 @@ class ChatGptApp(QWidget):
         super().__init__()
 
         self.buttonstate_file="button_state.pkl"
-        self.buttonnames_file="button_names.pkl"
-        self.studytext_file="studytext.pkl"
+        self.buttondata_file="button_data.pkl"
 
         self.initUI()
 
@@ -67,7 +66,7 @@ class ChatGptApp(QWidget):
         self.buttons = []
 
         # 학습 내용 저장할 리스트
-        self.texts = []
+        # self.texts = []
 
     def clean_TextChanged(self):
         if self.file_input.toPlainText() == "파일 내용을 입력하세요.":
@@ -79,7 +78,7 @@ class ChatGptApp(QWidget):
             self.buttonCounter += 1
             button = QPushButton(text, self)
             button.setIcon(QIcon("img/icon.png"))
-            button.clicked.connect(self.showInputDialog)
+            button.clicked.connect(lambda _, text="default" : self.showInputDialog(text))
             self.vbox_right.addWidget(button) 
             self.buttons.append(button)
 
@@ -87,15 +86,13 @@ class ChatGptApp(QWidget):
         button = self.sender()
         text_input = QPlainTextEdit(self)
         text_input.setFixedSize(400, 500)
-        text_input.setPlainText("학습 시킬 내용을 입력하세요.")
+        if (text == "default") :
+            pass
+        else:
+            text_input.setPlainText(text)
 
         dialog = QMessageBox()
         dialog.setWindowTitle("사전 학습 데이터 입력")
-
-        if text:
-            text_input.setPlainText(text)
-        else:
-            text_input.setPlainText("Chat-gpt에게 학습 시킬 내용을 입력하세요:")
 
         dialog.setIcon(QMessageBox.Question)
         dialog.addButton("확인", QMessageBox.AcceptRole)
@@ -104,23 +101,15 @@ class ChatGptApp(QWidget):
         dialog.layout().addWidget(text_input)
 
         
-        if dialog.exec_() == QMessageBox.Accepted:
-            print(text_input)
-            lines = text_input.toPlainText().split('\n')
-
-            self.texts.append(lines)
+        if dialog.exec_() == QMessageBox.AcceptRole:
+            #button = self.sender()
+            text = text_input.toPlainText()
+            button.setProperty("study_text", text)
           
         # 삭제 버튼 누르면 삭제
         if dialog.clickedButton()==BtnDelete:
             self.buttons.remove(button)
             button.deleteLater()
-
-        #QMessageBox.information(self, "입력 결과", f"입력된 텍스트: {text}\n버튼: {button.text()}")
-
-    def buttonClicked(self):
-        button = self.sender()
-        index = self.buttonLayout.indexOf(button)
-        self.verify_label.setText(f"Button {index + 1} 클릭됨.")
 
     def loadFile(self):
         file_dialog = QFileDialog()
@@ -168,57 +157,36 @@ class ChatGptApp(QWidget):
 
     def saveButtonState(self):
         button_state = self.addButton.isChecked()
-        with open(self.buttonstate_file, "wb") as f:
+        with open("button_state.pkl", "wb") as f:
             pickle.dump(button_state, f)
 
-        # 추가된 버튼들의 이름을 저장
+        # 추가된 버튼들의 이름과 텍스트를 저장
+        button_data = []
+        for button in self.buttons:
+            text = button.property("study_text")
+            if text:
+                button_data.append((button.text(), text))
 
-        button_names = [button.text() for button in self.buttons]
-        texts = []
-        for text in self.texts:
-            texts.extend(text)
-
-        btn_sets = defaultdict()
-
-        btn_sets = {'btn_name' : [], 's_text' : []}
-
-        for i in range(len(button_names)//self.buttonCounter):
-            btn_sets['btn_name'].extend(button_names)
-            btn_sets['s_text'].extend(texts)
-
-        with open(self.buttonnames_file, "wb") as f:
-            pickle.dump(btn_sets, f)
-
-        # 학습 아이템 내용 저장
-        '''
-        studytext = [text for text in self.texts]
-        with open(self.studytext_file, "wb") as f:
-            pickle.dump(studytext, f)
-        '''
+        with open("button_data.pkl", "wb") as f:
+            pickle.dump(button_data, f)
 
     def loadButtonState(self):
         try:
-            with open(self.buttonstate_file, "rb") as f:
+            with open("button_state.pkl", "rb") as f:
                 button_state = pickle.load(f)
                 self.addButton.setChecked(button_state)
         except FileNotFoundError:
             pass
 
         try:
-            with open(self.buttonnames_file, "rb") as f:
-                button_names = pickle.load(f)
-
-                for key, value in button_names.items():
-                    if key=='btn_name':
-                        for i in value:
-                            button = QPushButton(i, self)
-                            self.vbox_right.addWidget(button)
-                            self.buttons.append(button)
-                        
-                    else:
-                        for i in value:
-                            button.clicked.connect(lambda:self.showInputDialog(i))
-                
+            with open("button_data.pkl", "rb") as f:
+                button_data = pickle.load(f)
+                for name, study_text in button_data:
+                    button = QPushButton(name, self)
+                    button.setProperty("study_text", study_text)
+                    button.clicked.connect(lambda _, text=study_text: self.showInputDialog(text))
+                    self.vbox_right.addWidget(button)
+                    self.buttons.append(button)
         except FileNotFoundError:
             pass
     

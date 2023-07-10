@@ -33,10 +33,12 @@ class MainWindow(QMainWindow):
 
 
     def buttonClicked(self):
-        text, ok = QInputDialog.getText(self, "학습 추가", "학습 할 이름을 입력하세요:")
+        text, ok = QInputDialog.getText(self, "학습 추가", "학습 할 내용을 입력하세요:")
         if ok and text:
             self.buttonCounter += 1
             button = QPushButton(text, self)
+            button.setProperty("text", text)
+            button.clicked.connect(lambda _, text=text: self.showText(text))
             self.vbox_right.addWidget(button)
             self.buttons.append(button)
 
@@ -45,10 +47,15 @@ class MainWindow(QMainWindow):
         with open("button_state.pkl", "wb") as f:
             pickle.dump(button_state, f)
 
-        # 추가된 버튼들의 이름을 저장
-        button_names = [button.text() for button in self.buttons]
-        with open("button_names.pkl", "wb") as f:
-            pickle.dump(button_names, f)
+        # 추가된 버튼들의 이름과 텍스트를 저장
+        button_data = []
+        for button in self.buttons:
+            text = button.property("text")
+            if text:
+                button_data.append((button.text(), text))
+
+        with open("button_data.pkl", "wb") as f:
+            pickle.dump(button_data, f)
 
     def loadButtonState(self):
         try:
@@ -59,14 +66,19 @@ class MainWindow(QMainWindow):
             pass
 
         try:
-            with open("button_names.pkl", "rb") as f:
-                button_names = pickle.load(f)
-                for name in button_names:
+            with open("button_data.pkl", "rb") as f:
+                button_data = pickle.load(f)
+                for name, text in button_data:
                     button = QPushButton(name, self)
+                    button.setProperty("text", text)
+                    button.clicked.connect(lambda _, text=text: self.showText(text))
                     self.vbox_right.addWidget(button)
                     self.buttons.append(button)
         except FileNotFoundError:
             pass
+
+    def showText(self, text):
+        QMessageBox.information(self, "입력된 텍스트", f"입력된 텍스트:\n{text}")
 
     def closeEvent(self, event):
         self.saveButtonState()
