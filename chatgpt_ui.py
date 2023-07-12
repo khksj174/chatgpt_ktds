@@ -77,7 +77,7 @@ class ChatGptApp(QWidget):
         if ok and text:
             self.buttonCounter += 1
             button = QPushButton(text, self)
-            button.setIcon(QIcon("img/icon.png"))
+            button.setIcon(QIcon("img/icons8-chatgpt-24.png"))
             button.clicked.connect(lambda _, text="default" : self.showInputDialog(text))
             self.vbox_right.addWidget(button) 
             self.buttons.append(button)
@@ -86,23 +86,30 @@ class ChatGptApp(QWidget):
         button = self.sender()
         text_input = QPlainTextEdit(self)
         text_input.setFixedSize(400, 500)
-        if (text == "default") :
-            pass
-        else:
-            text_input.setPlainText(text)
+
+        if button.property("study_text"):
+            text_input.setPlainText(button.property("study_text"))
 
         dialog = QMessageBox()
         dialog.setWindowTitle("사전 학습 데이터 입력")
 
-        dialog.setIcon(QMessageBox.Question)
-        dialog.addButton("확인", QMessageBox.AcceptRole)
+        # 아이콘 파일 경로
+        icon_path = './img/icons8-chatgpt-48.png'
+
+        # QIcon으로 아이콘 로드
+        custom_icon = QIcon(icon_path)
+
+        #dialog.setIcon(QMessageBox.Question)
+        dialog.setIconPixmap(custom_icon.pixmap(128, 128))
+        dialog.addButton("저장", QMessageBox.AcceptRole)
         dialog.addButton("취소", QMessageBox.RejectRole)
         BtnDelete=dialog.addButton("삭제", QMessageBox.ActionRole)
+        EduBtn=dialog.addButton("학습", QMessageBox.ActionRole)
         dialog.layout().addWidget(text_input)
 
         
         if dialog.exec_() == QMessageBox.AcceptRole:
-            #button = self.sender()
+            button = self.sender()
             text = text_input.toPlainText()
             button.setProperty("study_text", text)
           
@@ -110,6 +117,11 @@ class ChatGptApp(QWidget):
         if dialog.clickedButton()==BtnDelete:
             self.buttons.remove(button)
             button.deleteLater()
+        
+        if dialog.clickedButton()==EduBtn:
+            print(text_input.toPlainText())
+            self.Script(text_input.toPlainText())
+            
 
     def loadFile(self):
         file_dialog = QFileDialog()
@@ -119,12 +131,14 @@ class ChatGptApp(QWidget):
                 file_content = file.read()
                 self.file_label.setText(file_content)
 
-    def Script(self):
+    def Script(self,text):
         msgs = []
-        text = self.file_input.toPlainText()
+        temp_msg = text
 
-        msg = {"role": "user", "content": text}
+        msg = {"role": "user", "content": temp_msg}
         msgs.append(msg)
+
+        print(msgs)
 
         loading_label = QLabel(self)
         loading_movie = QMovie("img/1494.gif")
@@ -147,7 +161,7 @@ class ChatGptApp(QWidget):
         self.file_label.setText(response)
 
     def response_gpt(self,msg):
-        openai.api_key = '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'
+        openai.api_key = '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'
         response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=msg
