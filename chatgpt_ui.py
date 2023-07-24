@@ -345,7 +345,7 @@ if __name__ == "__main__":
         padding: 10px 2px; /* 안쪽 여백 */
         font-family: "맑은 고딕", sans-serif; /* 폰트 설정 */
         font-size: 18px; /* 폰트 크기 */
-	    border-radius: 5px;
+	    border-radius: 6px;
     }
     QLabel {
         background-color: #F0F0F0; /* 배경색 */
@@ -353,7 +353,7 @@ if __name__ == "__main__":
         color: rgb(58, 134, 255);; /* 텍스트 색상 */
         font-family: "맑은 고딕", sans-serif; /* 폰트 설정 */
         font-size: 20px; /* 폰트 크기 */
-        border-radius: 5px;
+        border-radius: 6px;
     }
     QTextEdit {
         min-width:400px;
@@ -363,7 +363,7 @@ if __name__ == "__main__":
         color: rgb(58, 134, 255);; /* 텍스트 색상 */
         font-family: "맑은 고딕", sans-serif; /* 폰트 설정 */
         font-size: 20px; /* 폰트 크기 */
-        border-radius: 5px;
+        border-radius: 6px;
     }
     """
 
