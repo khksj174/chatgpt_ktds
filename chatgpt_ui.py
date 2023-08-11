@@ -179,7 +179,9 @@ class ChatGptApp(QWidget):
         self.file_label.setText(response)
 
     def response_gpt(self,msg):
-        openai.api_key = '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'
+        with open('./apikey.txt', "r") as key_file:
+                openai.api_key=key_file.read()
+        #openai.api_key = '################'
         response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=msg
