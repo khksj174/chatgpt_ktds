@@ -4,11 +4,7 @@ import pickle
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from qt_material import apply_stylesheet
-
-'''import nltk
-nltk.download('punkt')
-nltk.download('averaged_perceptron_tagger')'''
+from pathlib import Path
 from nltk import word_tokenize, pos_tag
 
 class ChatGptApp(QWidget):
@@ -18,10 +14,10 @@ class ChatGptApp(QWidget):
         self.initUI()
         
     def initUI(self):
+
         self.file_label = QTextEdit("학습 결과")
         self.file_label.setFrameShape(QLabel.Box)
-        self.file_label.setFixedSize(700, 300)
-        #self.file_label.setStyleSheet("font-size: 10pt;")
+        self.file_label.setFixedSize(500, 300)
         self.file_label.setReadOnly(True)
 
         self.verify_button=QPushButton("검증", self)
@@ -29,14 +25,11 @@ class ChatGptApp(QWidget):
 
         self.verify_label = QTextEdit("검증 결과")
         self.verify_label.setFrameShape(QLabel.Box)
-        self.verify_label.setFixedSize(700, 300)
-        #self.verify_label.setStyleSheet("font-size: 10pt;")
+        self.verify_label.setFixedSize(500, 300)
         self.verify_label.setReadOnly(True)
-        #self.verify_label.setStyleSheet("color: red; font-size: 16px; font-family: Arial;")
 
         self.filename_label=QLabel("불러온 파일이 없습니다.")
-        #self.filename_label.setStyleSheet("font-size: 8pt;")
-        self.filename_label.setFixedSize(700, 50)
+        self.filename_label.setFixedSize(500, 50)
 
         '''self.file_input = QPlainTextEdit()
         self.file_input.setFixedSize(700, 100)
@@ -53,22 +46,6 @@ class ChatGptApp(QWidget):
         self.addButton = QPushButton("+", self)
         self.addButton.clicked.connect(self.addButtonClicked)   
 
-        # loading gif
-        '''self.loading_label = QLabel(self)
-        #self.loading_label.setWordWrap(True)
-        self.loading_movie = QMovie("loading.gif") 
-        self.loading_label.setMovie(self.loading_movie)
-
-        self.loading_label.setFixedSize(50, 50)
-
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.loading_label)
-        self.layout.setAlignment(Qt.AlignCenter)
-        
-        # QLabel의 크기가 변경될 때마다 QMovie의 크기 조정
-        self.loading_label.resizeEvent = self.loading_movie.setScaledSize(self.loading_label.size())
-        self.loading_movie.start()'''
-
         # 하단 '파일 불러오기', '검증' 버튼 레이아웃 설정
         vbox_left_hbox=QHBoxLayout()
         vbox_left_hbox.addWidget(load_button) # 파일 불러오기
@@ -77,7 +54,6 @@ class ChatGptApp(QWidget):
         self.vbox_left = QVBoxLayout()
         self.vbox_left.addWidget(self.file_label)
         #vbox_left.addWidget(self.file_input)
-        #self.vbox_left.addLayout(self.layout) # 로딩 gif 표시
         self.vbox_left.addWidget(self.verify_label)
         self.vbox_left.addWidget(self.filename_label) # 파일명 표시
         self.vbox_left.addLayout(vbox_left_hbox)
@@ -95,8 +71,8 @@ class ChatGptApp(QWidget):
 
         self.setLayout(hbox)
 
-        self.setWindowTitle("Chat Gpt 앱")
-        self.setGeometry(100, 100, 900, 800)  # 윈도우 창 크기 설정
+        self.setWindowTitle("Chat-Gpt 앱")
+        self.setGeometry(100, 100, 720, 560)  # 윈도우 창 크기 설정
         self.show()
 
         self.buttonCounter = 0
@@ -104,16 +80,13 @@ class ChatGptApp(QWidget):
         # 추가된 버튼들을 저장할 리스트
         self.buttons = []
 
-        # 학습 내용 저장할 리스트
-        # self.texts = []
-
-    def clean_TextChanged(self):
+    '''def clean_TextChanged(self):
         if self.file_input.toPlainText() == "파일 내용을 입력하세요.":
-            self.file_input.clear()
+            self.file_input.clear()'''
     
     def addButtonClicked(self):
         addBtn_dialog=QDialog(self)
-        #addBtn_dialog.setStyleSheet("width: 250px;")
+
         text, ok = QInputDialog.getText(addBtn_dialog, "학습 추가", "<html><font size='4'>학습 할 이름을 입력하세요:</font></html>")
         if ok and text:
             self.buttonCounter += 1
@@ -127,24 +100,21 @@ class ChatGptApp(QWidget):
     def showInputDialog(self,text):
         button = self.sender()
         text_input = QTextEdit(self)
-        #text_input.setFixedSize(400, 500)
 
         if button.property("study_text"): 
             text_input.setPlainText(button.property("study_text"))
 
-        #text_input.setStyleSheet("font-size: 13pt;")
-
         dialog = QMessageBox()
-        dialog.setWindowTitle("사전 학습 데이터 입력")
+        dialog.setWindowTitle(button.text())
 
-	# 아이콘 파일 경로
-        icon_path = './img/icons8-chatgpt-48.png'
-
+	    # 아이콘 파일 경로
+        #icon_path = './img/icons8-chatgpt-48.png'
+        icon_path = './ui/img/gpt_icon.jpg'
         # QIcon으로 아이콘 로드
         custom_icon = QIcon(icon_path)
+        dialog.setIcon(QMessageBox.Question)
+        dialog.setIconPixmap(custom_icon.pixmap(64, 64))
 
-        #dialog.setIcon(QMessageBox.Question)
-        dialog.setIconPixmap(custom_icon.pixmap(128, 128))
         dialog.addButton("저장", QMessageBox.AcceptRole)
         dialog.addButton("취소", QMessageBox.RejectRole)
         BtnDelete=dialog.addButton("삭제", QMessageBox.ActionRole)
@@ -170,13 +140,12 @@ class ChatGptApp(QWidget):
         file_dialog = QFileDialog()
         file_path, _ = file_dialog.getOpenFileName(self, "파일 불러오기")
         if file_path:
-            file_name=file_path.split("/")[-1]# 파일 경로에서 파일명만 추출
-            self.filename_label.setText('파일명: ' + file_name)
-            with open(file_path, "r", encoding='UTF-8') as file:
-                #file_content = file.read()
-                #self.file_label.setText(file_content)
-                sql_script=file.read()
-                self.verify_label.setText(', '.join(self.verify_result(sql_script)))
+            self.file_name=file_path.split("/")[-1]# 파일 경로에서 파일명만 추출
+            self.filename_label.setText('파일명: ' + self.file_name)
+            with open(file_path, "r", encoding='cp949') as file:
+                file_content=file.read()
+                self.verify_label.setText(file_content)
+                self.verify_label_dates=', '.join(self.verify_result(file_content))
 
     def Script(self,text):
         msgs = []
@@ -206,12 +175,11 @@ class ChatGptApp(QWidget):
         loading_movie.stop()
         loading_label.hide()
         
-        #self.file_label.setText(self.response)
-        self.file_label.setText(', '.join(self.file_result(response)))
-        #self.verify_label.setText('\n'.join(self.result(response)))
+        self.file_label_dates=', '.join(self.file_result(response))
+        self.file_label.setText(response)
 
     def response_gpt(self,msg):
-        openai.api_key = '###################'
+        openai.api_key = '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'
         response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=msg
@@ -250,16 +218,21 @@ class ChatGptApp(QWidget):
                     sql_dates.append(words[0][1:9])
         sql_dates=list(set(sql_dates))
         sql_dates.sort()
-        sql_dates_result=[sql_dates[i] for i in [0, 2, 4]]
+
+        if "카드" in self.file_name:
+            sql_dates_result=[sql_dates[i] for i in [0, 2, 4]]
+        else:
+            sql_dates_result=sql_dates
 
         return sql_dates_result
     
     # 학습 데이터 vs 검증 데이터 비교
     def find_difference(self):
-        text1 = self.file_label.toPlainText()
-        text2 = self.verify_label.toPlainText()
-
+        apply_red_cnt=0
         # 텍스트 비교하여 다른 부분 찾기
+        text1=self.file_label_dates
+        self.verify_label.setText(self.verify_label_dates)
+        text2 = self.verify_label.toPlainText()
         # 두 텍스트를 문자 단위로 비교하여 다른 부분의 인덱스 찾기
         diff_indices = []
         min_length = min(len(text1), len(text2))
@@ -272,13 +245,41 @@ class ChatGptApp(QWidget):
                 diff_indices.append(i)
             elif start_idx is not None:
                 self.apply_red_format(start_idx, i)
+                apply_red_cnt+=1
                 start_idx = None
 
         # 남은 글자들 처리
         if start_idx is not None:
             self.apply_red_format(start_idx, len(text1) if len(text1) > len(text2) else len(text2))
-    
-    # 다른 부분 빨간 폰트로 표시
+            apply_red_cnt+=1
+
+        # 검증 결과 정상/비정상 판단    
+        self.verify_label.moveCursor(self.verify_label.textCursor().Start) # 커서를 끝으로 이동
+        self.verify_label.insertPlainText("chat-GPT 검증 결과: ")
+        # 폰트 설정
+        #wrong_font = QFont("맑은 고딕", 12, QFont.Bold)
+        wrong_font_color = QColor(255, 0, 0)  # 빨간
+        # 현재 커서 위치 가져오기
+        cursor = self.verify_label.textCursor()
+        position = cursor.position()
+        if apply_red_cnt>0:
+            # 텍스트 추가
+            verify_wrong="스크립트 날짜 오류!!\n\n"
+            self.verify_label.insertPlainText(verify_wrong)
+            # 텍스트에 적용할 폰트 색상 및 폰트 설정
+            char_format = QTextCharFormat()
+            #char_format.setFont(wrong_font)
+            char_format.setForeground(wrong_font_color)
+            # 텍스트에 적용
+            cursor.setPosition(position)
+            cursor.setPosition(position + len(verify_wrong), QTextCursor.KeepAnchor)
+            cursor.mergeCharFormat(char_format)
+
+            self.verify_label.insertPlainText(f"학습 결과: {self.file_label_dates}\n정상 배치 날짜: ")
+        else:
+            self.verify_label.insertPlainText("정상\n\n"+ "배치 날짜: ") 
+
+    # 다른 부분 빨간 폰트로 표시 
     def apply_red_format(self, start, end):
         red_format = QTextCharFormat()
         red_format.setForeground(QColor("red"))
@@ -315,13 +316,12 @@ class ChatGptApp(QWidget):
         try:
             with open("button_data.pkl", "rb") as f:
                 button_data = pickle.load(f)
-                for name, study_text in button_data:
-                    button = QPushButton(name, self)
+                for self.name, study_text in button_data:
+                    button = QPushButton(self.name, self)
                     button.setProperty("study_text", study_text)
                     button.clicked.connect(lambda _, text=study_text: self.showInputDialog(text))
                     self.addBtn_hbox.addWidget(button)
                     self.buttons.append(button)
-                #self.vbox_right.addStretch()
         except FileNotFoundError:
             pass
     
@@ -331,44 +331,17 @@ class ChatGptApp(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    # 폰트 추가
+    font_path = './ui/font/SUIT-Variable.ttf'
+    font_id = QFontDatabase.addApplicationFont(font_path)
+    app.setFont(QFont("SUIT Variable", 10))
+
     window = ChatGptApp()
     window.loadButtonState()
-    #apply_stylesheet(app, theme='light_blue.xml', invert_secondary=True)
-    
-    style_sheet = """
-    /* 전체 버튼 스타일을 설정합니다 */
-     /* QLabel 스타일을 설정합니다 */
-    /* 전체 버튼 스타일을 설정합니다 */
-    QPushButton {
-        background-color: rgb(58, 134, 255); /* 배경색 */
-        color: white; /* 텍스트 색상 */
-        padding: 10px 2px; /* 안쪽 여백 */
-        font-family: "맑은 고딕", sans-serif; /* 폰트 설정 */
-        font-size: 18px; /* 폰트 크기 */
-	    border-radius: 6px;
-    }
-    QLabel {
-        background-color: #F0F0F0; /* 배경색 */
-        border: 2px solid rgb(58, 134, 255); /* 테두리 */
-        color: rgb(58, 134, 255);; /* 텍스트 색상 */
-        font-family: "맑은 고딕", sans-serif; /* 폰트 설정 */
-        font-size: 20px; /* 폰트 크기 */
-        border-radius: 6px;
-    }
-    QTextEdit {
-        min-width:400px;
-        min-height:300px;
-        background-color: #F0F0F0; /* 배경색 */
-        border: 2px solid rgb(58, 134, 255); /* 테두리 */
-        color: rgb(58, 134, 255);; /* 텍스트 색상 */
-        font-family: "맑은 고딕", sans-serif; /* 폰트 설정 */
-        font-size: 20px; /* 폰트 크기 */
-        border-radius: 6px;
-    }
-    """
 
     # QApplication에 스타일시트 설정
-    app.setStyleSheet(style_sheet)
-
+    app.setStyleSheet(Path('./ui/Aqua.qss').read_text(encoding='utf-8'))
+    
     window.show()
     sys.exit(app.exec_())
