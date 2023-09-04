@@ -6,6 +6,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from pathlib import Path
 from nltk import word_tokenize, pos_tag
+import win32com.client as win32
 
 class ChatGptApp(QWidget):
     def __init__(self):
@@ -17,19 +18,20 @@ class ChatGptApp(QWidget):
 
         self.file_label = QTextEdit("학습 결과")
         self.file_label.setFrameShape(QLabel.Box)
-        self.file_label.setFixedSize(500, 300)
+        #self.file_label.setFixedSize(500, 300)
         self.file_label.setReadOnly(True)
 
         self.verify_button=QPushButton("검증", self)
+        self.adjust_button_size(self.verify_button)
         self.verify_button.clicked.connect(self.find_difference)
 
         self.verify_label = QTextEdit("검증 결과")
         self.verify_label.setFrameShape(QLabel.Box)
-        self.verify_label.setFixedSize(500, 300)
+        #self.verify_label.setFixedSize(500, 300)
         self.verify_label.setReadOnly(True)
 
         self.filename_label=QLabel("불러온 파일이 없습니다.")
-        self.filename_label.setFixedSize(500, 50)
+        #self.filename_label.setFixedSize(500, 50)
 
         '''self.file_input = QPlainTextEdit()
         self.file_input.setFixedSize(700, 100)
@@ -37,14 +39,18 @@ class ChatGptApp(QWidget):
         self.file_input.textChanged.connect(self.clean_TextChanged)'''
 
         load_button = QPushButton("파일 불러오기", self)
+        self.adjust_button_size(load_button)
         load_button.clicked.connect(self.loadFile)
 
         '''verify_button = QPushButton("입력", self)
         verify_button.clicked.connect(self.Script)'''
 
+        #load_script=QPushButton("스크립트 생성하기", self)
+
         self.addBtn_hbox=QVBoxLayout()
         self.addButton = QPushButton("+", self)
-        self.addButton.clicked.connect(self.addButtonClicked)   
+        self.adjust_button_size(self.addButton)
+        self.addButton.clicked.connect(self.addButtonClicked)
 
         # 하단 '파일 불러오기', '검증' 버튼 레이아웃 설정
         vbox_left_hbox=QHBoxLayout()
@@ -64,6 +70,7 @@ class ChatGptApp(QWidget):
         self.addBtn_hbox.addWidget(self.addButton)
         self.vbox_right.addLayout(self.addBtn_hbox)
         self.vbox_right.addStretch()
+        #self.vbox_right.addWidget(load_script) # 스크립트 생성하기
 
         hbox = QHBoxLayout()
         hbox.addLayout(self.vbox_left)
@@ -72,7 +79,7 @@ class ChatGptApp(QWidget):
         self.setLayout(hbox)
 
         self.setWindowTitle("Chat-Gpt 앱")
-        self.setGeometry(100, 100, 720, 560)  # 윈도우 창 크기 설정
+        self.setGeometry(100, 100, 800, 600)  # 윈도우 창 크기 설정
         self.show()
 
         self.buttonCounter = 0
@@ -87,11 +94,12 @@ class ChatGptApp(QWidget):
     def addButtonClicked(self):
         addBtn_dialog=QDialog(self)
 
-        text, ok = QInputDialog.getText(addBtn_dialog, "학습 추가", "<html><font size='4'>학습 할 이름을 입력하세요:</font></html>")
+        text, ok = QInputDialog.getText(addBtn_dialog, "학습 추가", "<html><font size='4' face='SUIT Variable' color='#004080'>학습 할 이름을 입력하세요:&#9;</font></html>")
         if ok and text:
             self.buttonCounter += 1
             button = QPushButton(text, self)
-            button.setIcon(QIcon("img/icons8-chatgpt-24.png"))
+            self.adjust_button_size(button)
+            #button.setIcon(QIcon("img/icons8-chatgpt-24.png"))
             button.clicked.connect(lambda _, text="default" : self.showInputDialog(text))
             #self.vbox_right.addWidget(button)
             self.addBtn_hbox.addWidget(button)
@@ -115,10 +123,16 @@ class ChatGptApp(QWidget):
         dialog.setIcon(QMessageBox.Question)
         dialog.setIconPixmap(custom_icon.pixmap(64, 64))
 
-        dialog.addButton("저장", QMessageBox.AcceptRole)
-        dialog.addButton("취소", QMessageBox.RejectRole)
+        save_btn=dialog.addButton("저장", QMessageBox.AcceptRole)
+        self.adjust_button_size(save_btn)
+        cancel_btn=dialog.addButton("취소", QMessageBox.RejectRole)
+        self.adjust_button_size(cancel_btn)
         BtnDelete=dialog.addButton("삭제", QMessageBox.ActionRole)
+        self.adjust_button_size(BtnDelete)
         EduBtn=dialog.addButton("학습", QMessageBox.ActionRole)
+        self.adjust_button_size(EduBtn)
+        get_script=dialog.addButton("스크립트 생성하기", QMessageBox.ActionRole)
+        self.adjust_button_size(get_script)
         dialog.layout().addWidget(text_input)
 
         if dialog.exec_() == QMessageBox.AcceptRole:
@@ -134,7 +148,15 @@ class ChatGptApp(QWidget):
         # 학습 버튼 누를 시
         if dialog.clickedButton()==EduBtn:
             print(text_input.toPlainText())
-            self.Script(text_input.toPlainText())
+            result=text_input.toPlainText()
+            self.Script(result)
+        
+        # 스크립트 생성하기 버튼 클릭 시
+        if dialog.clickedButton()==get_script:
+            print(text_input.toPlainText())
+            #result=text_input.toPlainText()+'\n다음 텍스트에서 정보를 추출하여 PY_ADJ_WHY_CD 테이블에 조정사유코드 추가하는 스크립트를 생성해줘.'+self.doc_text
+            result=text_input.toPlainText()+'\n다음 텍스트를 통해 테이블에 데이터 삽입하는 insert문 모두 생성해서 스크립트만 보여주세요.'+self.doc_text
+            self.Script(result)
 
     def loadFile(self):
         file_dialog = QFileDialog()
@@ -142,10 +164,41 @@ class ChatGptApp(QWidget):
         if file_path:
             self.file_name=file_path.split("/")[-1]# 파일 경로에서 파일명만 추출
             self.filename_label.setText('파일명: ' + self.file_name)
-            with open(file_path, "r", encoding='cp949') as file:
-                file_content=file.read()
-                self.verify_label.setText(file_content)
-                self.verify_label_dates=', '.join(self.verify_result(file_content))
+            file_type=self.file_name.split(".")[-1]
+            if file_type=='doc' or 'docx':
+                file_path=file_path.replace("/", "\\")
+                print(file_path)
+                word = win32.gencache.EnsureDispatch("Word.application")
+                word.Visible = False
+                # ================== 본문(테이블 내의 데이터 포함) 가져오기 ===============================
+                word.Documents.Open(file_path) 
+                a=word.ActiveDocument.Content.Text.split("\r") # 캐리지 리턴 제거하고, 행별로 구분
+                
+                self.doc_text=''
+                for i in range(0,len(a)):
+                    if '사용자 관점' in a[i]:
+                        idx=i
+                        break
+                while(True):
+                    if '사용자 및 운영자 매뉴얼' in a[i] or i==len(a):
+                        break
+
+                    if a[i]!='\x07' and a[i]!='' and a[i]!='\x07\u3000':
+                        a[i]=a[i].replace('\x07', '').replace('\x0b', '').replace('\x0c', '')
+                        self.doc_text+=a[i]+'\n'
+                    i+=1
+
+                print(self.doc_text)
+                word.Quit()
+
+            elif file_type=='xlsx' or 'xls':
+                print(file_type)
+
+            else:
+                with open(file_path, "r", encoding='cp949') as file:
+                    file_content=file.read()
+                    self.verify_label.setText(file_content)
+                    self.verify_label_dates=', '.join(self.verify_result(file_content))
 
     def Script(self,text):
         msgs = []
@@ -153,7 +206,7 @@ class ChatGptApp(QWidget):
         msg = {"role": "user", "content": temp_msg}
         msgs.append(msg)
 
-        print(msgs)
+        #print(msgs)
 
         loading_label = QLabel(self)
         loading_label.setWordWrap(True)
@@ -179,9 +232,7 @@ class ChatGptApp(QWidget):
         self.file_label.setText(response)
 
     def response_gpt(self,msg):
-        with open('./apikey.txt', "r") as key_file:
-                openai.api_key=key_file.read()
-        #openai.api_key = '################'
+        openai.api_key=Path('./apikey.txt').read_text()
         response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=msg
@@ -290,7 +341,7 @@ class ChatGptApp(QWidget):
         cursor = self.verify_label.textCursor()
         cursor.setPosition(start, QTextCursor.MoveAnchor)
         cursor.setPosition(end, QTextCursor.KeepAnchor)
-        cursor.setCharFormat(red_format)
+        cursor.setCharFormat(red_format)        
 
     def saveButtonState(self):
         button_state = self.addButton.isChecked()
@@ -320,6 +371,7 @@ class ChatGptApp(QWidget):
                 button_data = pickle.load(f)
                 for self.name, study_text in button_data:
                     button = QPushButton(self.name, self)
+                    self.adjust_button_size(button)
                     button.setProperty("study_text", study_text)
                     button.clicked.connect(lambda _, text=study_text: self.showInputDialog(text))
                     self.addBtn_hbox.addWidget(button)
@@ -327,6 +379,15 @@ class ChatGptApp(QWidget):
         except FileNotFoundError:
             pass
     
+    # 버튼 크기 텍스트 내용에 맞게 자동 조절
+    def adjust_button_size(self, btn):
+        size_policy = btn.sizePolicy()
+        size_policy.setRetainSizeWhenHidden(True)
+        btn.setSizePolicy(size_policy)
+        button_size_hint = btn.sizeHint()
+        btn.setMinimumWidth(button_size_hint.width() + 30)
+        btn.setMinimumHeight(button_size_hint.height() + 10)
+
     def closeEvent(self, event):
         self.saveButtonState()
         event.accept()
